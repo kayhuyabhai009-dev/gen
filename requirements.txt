@@ -1,0 +1,6 @@
+fastapi
+uvicorn[standard]
+httpx[socks]
+python-multipart
+pydantic
+stem
