@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seedance Pro — AI Video Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #16161f;
+            --bg-input: #1a1a26;
+            --border: #2a2a3a;
+            --border-hover: #3a3a5a;
+            --text-primary: #e8e8f0;
+            --text-secondary: #8888a0;
+            --text-muted: #555570;
+            --accent: #7c5cff;
+            --accent-hover: #9175ff;
+            --accent-glow: rgba(124, 92, 255, 0.3);
+            --green: #22c55e;
+            --green-glow: rgba(34, 197, 94, 0.2);
+            --red: #ef4444;
+            --orange: #f59e0b;
+            --cyan: #00d4ff;
+            --gradient: linear-gradient(135deg, #7c5cff 0%, #00d4ff 100%);
+            --radius: 12px;
+            --radius-sm: 8px;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(20px);
+        }
+        .header-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .logo { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 700; }
+        .logo-icon { width: 36px; height: 36px; background: var(--gradient); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        .logo span { background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .badge { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 20px; background: var(--accent-glow); color: var(--accent); border: 1px solid var(--accent); letter-spacing: 0.5px; text-transform: uppercase; }
+        .header-stats { display: flex; gap: 20px; font-size: 13px; color: var(--text-secondary); }
+        .stat-item { display: flex; align-items: center; gap: 6px; }
+        .stat-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green-glow); }
+        .tg-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); }
+        .tg-dot.on { background: var(--green); box-shadow: 0 0 8px var(--green-glow); }
+
+        .main { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+
+        .tabs { display: flex; gap: 4px; background: var(--bg-secondary); border-radius: var(--radius); padding: 4px; margin-bottom: 28px; border: 1px solid var(--border); flex-wrap: wrap; }
+        .tab { flex: 1; padding: 12px 12px; border: none; background: transparent; color: var(--text-secondary); font-family: inherit; font-size: 13px; font-weight: 500; border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s; white-space: nowrap; min-width: fit-content; }
+        .tab:hover { color: var(--text-primary); background: var(--bg-card); }
+        .tab.active { background: var(--accent); color: #fff; box-shadow: 0 4px 15px var(--accent-glow); }
+
+        .panel { display: none; }
+        .panel.active { display: block; }
+
+        .gen-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 28px; margin-bottom: 24px; }
+        .gen-card-title { font-size: 18px; font-weight: 600; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        .gen-card-title .icon { font-size: 22px; }
+
+        .form-group { margin-bottom: 18px; }
+        .form-label { display: block; font-size: 13px; font-weight: 500; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+        textarea, select, input[type="text"], input[type="number"] {
+            width: 100%; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm);
+            color: var(--text-primary); font-family: inherit; font-size: 14px; padding: 14px 16px;
+            transition: border-color 0.2s, box-shadow 0.2s; outline: none;
+        }
+        textarea { resize: vertical; min-height: 120px; line-height: 1.5; }
+        textarea:focus, select:focus, input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+        select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238888a0' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+
+        .form-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; align-items: end; }
+        .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; align-items: end; }
+        @media (max-width: 768px) { .form-row, .form-row-3 { grid-template-columns: 1fr; } }
+
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 14px 28px; border: none; border-radius: var(--radius-sm); font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background: var(--gradient); color: #fff; box-shadow: 0 4px 15px var(--accent-glow); }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 25px var(--accent-glow); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .btn-secondary { background: var(--bg-input); color: var(--text-primary); border: 1px solid var(--border); }
+        .btn-secondary:hover { border-color: var(--border-hover); background: var(--bg-card); }
+        .btn-green { background: var(--green); color: #fff; }
+        .btn-green:hover { background: #16a34a; }
+        .btn-group { display: flex; gap: 12px; flex-wrap: wrap; }
+        .btn-sm { padding: 10px 16px; font-size: 12px; }
+
+        .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; margin-top: 24px; }
+        .result-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; position: relative; }
+        .result-card video, .result-card img { width: 100%; display: block; background: #000; }
+        .result-card video { aspect-ratio: 9/16; max-height: 500px; object-fit: contain; }
+        .result-card.landscape video { aspect-ratio: 16/9; }
+        .result-card img { aspect-ratio: auto; }
+        .result-meta { padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .result-meta .prompt-text { font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 50%; }
+        .result-btns { display: flex; gap: 6px; }
+        .btn-download { padding: 8px 16px; font-size: 12px; background: var(--green); color: #fff; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; text-decoration: none; transition: all 0.2s; }
+        .btn-download:hover { background: #16a34a; }
+        .btn-telegram { padding: 8px 12px; font-size: 12px; background: #0088cc; color: #fff; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn-telegram:hover { background: #006699; }
+
+        .job-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 12px; animation: slideIn 0.3s ease; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .job-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .job-prompt { font-size: 13px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70%; }
+        .job-status { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .job-status.pending { background: rgba(245, 158, 11, 0.15); color: var(--orange); }
+        .job-status.generating { background: rgba(124, 92, 255, 0.15); color: var(--accent); }
+        .job-status.polling { background: rgba(0, 212, 255, 0.15); color: var(--cyan); }
+        .job-status.done { background: var(--green-glow); color: var(--green); }
+        .job-status.error { background: rgba(239, 68, 68, 0.15); color: var(--red); }
+        .job-status.queued { background: rgba(245, 158, 11, 0.1); color: var(--orange); }
+        .progress-bar { height: 4px; background: var(--bg-input); border-radius: 4px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--gradient); border-radius: 4px; transition: width 0.5s ease; width: 0%; }
+        .job-time { font-size: 11px; color: var(--text-muted); margin-top: 8px; }
+
+        .section-title { font-size: 15px; font-weight: 600; color: var(--text-secondary); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .toast-container { position: fixed; top: 20px; right: 20px; z-index: 999; display: flex; flex-direction: column; gap: 10px; }
+        .toast { padding: 14px 20px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; box-shadow: 0 10px 30px rgba(0,0,0,0.4); animation: toastIn 0.3s ease; max-width: 380px; }
+        @keyframes toastIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+        .toast.success { background: #16a34a; color: #fff; }
+        .toast.error { background: var(--red); color: #fff; }
+        .toast.info { background: var(--accent); color: #fff; }
+
+        .spinner { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.2); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; display: inline-block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+        .empty-state .icon { font-size: 48px; margin-bottom: 16px; opacity: 0.4; }
+        .empty-state p { font-size: 14px; }
+
+        .enhanced-result { background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px; margin-top: 16px; font-size: 14px; line-height: 1.6; color: var(--text-primary); white-space: pre-wrap; position: relative; }
+        .copy-btn { position: absolute; top: 10px; right: 10px; padding: 6px 12px; font-size: 11px; background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-family: inherit; font-weight: 500; }
+        .copy-btn:hover { background: var(--border); color: var(--text-primary); }
+
+        .enhance-steps { margin-top: 12px; }
+        .enhance-step { padding: 10px 14px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 8px; font-size: 13px; }
+        .enhance-step-label { font-size: 11px; font-weight: 600; color: var(--accent); text-transform: uppercase; margin-bottom: 4px; }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
+
+        .counter-row { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+        .counter-box { flex: 1; min-width: 120px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px; text-align: center; }
+        .counter-box .num { font-size: 28px; font-weight: 700; background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .counter-box .label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+
+        .tg-setup { background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 20px; margin-top: 16px; }
+        .tg-setup .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+        @media (max-width: 768px) { .tg-setup .form-row-2 { grid-template-columns: 1fr; } }
+        .tg-help { font-size: 12px; color: var(--text-muted); margin-top: 8px; line-height: 1.8; }
+        .tg-help code { background: var(--bg-card); padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+
+        .rate-info { background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 20px; font-size: 13px; color: var(--orange); line-height: 1.6; }
+        .rate-info strong { color: var(--text-primary); }
+    </style>
+</head>
+<body>
+
+<header class="header">
+    <div class="header-inner">
+        <div class="logo">
+            <div class="logo-icon">⚡</div>
+            <span>Seedance Pro</span>
+            <div class="badge">v4 — IP Pool</div>
+        </div>
+        <div class="header-stats">
+            <div class="stat-item"><div class="stat-dot"></div> API Online</div>
+            <div class="stat-item"><div class="tg-dot" id="tgDot"></div> <span id="tgStatus">Telegram Off</span></div>
+            <div class="stat-item" id="activeJobsCount">0 Active Jobs</div>
+        </div>
+    </div>
+</header>
+
+<main class="main">
+    <div class="counter-row">
+        <div class="counter-box"><div class="num" id="cntGenerated">0</div><div class="label">Videos Generated</div></div>
+        <div class="counter-box"><div class="num" id="cntImages">0</div><div class="label">Images Generated</div></div>
+        <div class="counter-box"><div class="num" id="cntActive">0</div><div class="label">Active Jobs</div></div>
+        <div class="counter-box"><div class="num" id="cntEnhanced">0</div><div class="label">Prompts Enhanced</div></div>
+    </div>
+
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab('video')">🎬 Video Gen</button>
+        <button class="tab" onclick="switchTab('batch')">📦 Batch Mode</button>
+        <button class="tab" onclick="switchTab('image')">🖼️ Image Gen</button>
+        <button class="tab" onclick="switchTab('enhance')">✨ Enhancer</button>
+        <button class="tab" onclick="switchTab('promptgen')">🎲 Prompt Gen</button>
+        <button class="tab" onclick="switchTab('telegram')">📨 Telegram</button>
+    </div>
+
+    <!-- VIDEO GENERATOR -->
+    <div class="panel active" id="panel-video">
+        <div class="gen-card">
+            <div class="gen-card-title"><span class="icon">🎬</span> Seedance 2.0 Video Generator</div>
+            <div class="rate-info" id="poolInfo">
+                <strong>IP Pool Loading...</strong>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Prompt</label>
+                <textarea id="videoPrompt" placeholder="Describe your video scene in detail... (minimum 15 characters)&#10;&#10;Example: A cinematic sunset over snow-capped mountains, golden hour lighting, slow drone flyover with dramatic orchestral music"></textarea>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Aspect Ratio</label>
+                    <select id="videoAspect">
+                        <option value="VIDEO_ASPECT_RATIO_PORTRAIT">Portrait (9:16)</option>
+                        <option value="VIDEO_ASPECT_RATIO_LANDSCAPE">Landscape (16:9)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Parallel Jobs</label>
+                    <select id="videoParallel">
+                        <option value="1">1 Video</option>
+                        <option value="2">2 Videos</option>
+                        <option value="3">3 Videos</option>
+                        <option value="5" selected>5 Videos</option>
+                        <option value="8">8 Videos</option>
+                        <option value="10">10 Videos</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Enhance Level</label>
+                    <select id="videoEnhanceLevel">
+                        <option value="1">1x (Basic)</option>
+                        <option value="2" selected>2x (Better)</option>
+                        <option value="3">3x (Pro)</option>
+                        <option value="4">4x (Ultra)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <div class="btn-group" style="width:100%;">
+                        <button class="btn btn-secondary btn-sm" onclick="enhanceAndFill()" id="btnEnhanceVideo" style="flex:1;">✨ Enhance</button>
+                        <button class="btn btn-primary btn-sm" onclick="generateVideos()" id="btnGenVideo" style="flex:2;">🚀 Generate</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="videoJobs"></div>
+        <div class="results-grid" id="videoResults"></div>
+        <div class="empty-state" id="videoEmpty">
+            <div class="icon">🎬</div>
+            <p>Your generated videos will appear here</p>
+        </div>
+    </div>
+
+    <!-- BATCH MODE -->
+    <div class="panel" id="panel-batch">
+        <div class="gen-card">
+            <div class="gen-card-title"><span class="icon">📦</span> Batch Video Generator</div>
+            <div class="rate-info" id="batchPoolInfo">
+                <strong>IP Pool Parallel Batch:</strong> Each prompt gets its own IP slot. True parallel generation!
+            </div>
+            <p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px;">Enter multiple prompts separated by blank lines. They'll be queued and generated one-by-one.</p>
+            <div class="form-group">
+                <label class="form-label">Prompts (blank line = separator)</label>
+                <textarea id="batchPrompts" style="min-height:200px;" placeholder="A cinematic sunset over mountains with golden hour lighting&#10;&#10;A futuristic city with flying cars and neon lights at night&#10;&#10;An underwater scene with colorful coral reef and tropical fish"></textarea>
+            </div>
+            <div class="form-row-3">
+                <div class="form-group">
+                    <label class="form-label">Aspect Ratio</label>
+                    <select id="batchAspect">
+                        <option value="VIDEO_ASPECT_RATIO_PORTRAIT">Portrait (9:16)</option>
+                        <option value="VIDEO_ASPECT_RATIO_LANDSCAPE">Landscape (16:9)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Enhance Before Generate</label>
+                    <select id="batchEnhance">
+                        <option value="0">No Enhancement</option>
+                        <option value="1">1x Enhance</option>
+                        <option value="2" selected>2x Enhance</option>
+                        <option value="3">3x Enhance</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <button class="btn btn-primary" onclick="batchGenerate()" id="btnBatch" style="width:100%;">📦 Launch Batch</button>
+                </div>
+            </div>
+        </div>
+        <div id="batchJobs"></div>
+        <div class="results-grid" id="batchResults"></div>
+        <div class="empty-state" id="batchEmpty">
+            <div class="icon">📦</div>
+            <p>Batch results will appear here</p>
+        </div>
+    </div>
+
+    <!-- IMAGE GENERATOR -->
+    <div class="panel" id="panel-image">
+        <div class="gen-card">
+            <div class="gen-card-title"><span class="icon">🖼️</span> AI Image Generator</div>
+            <div class="form-group">
+                <label class="form-label">Prompt</label>
+                <textarea id="imagePrompt" placeholder="Describe the image you want to generate...&#10;&#10;Example: A futuristic cityscape at night with neon lights reflecting on wet streets, cyberpunk aesthetic, ultra detailed 8K"></textarea>
+            </div>
+            <div class="form-row-3">
+                <div class="form-group">
+                    <label class="form-label">Aspect Ratio</label>
+                    <select id="imageAspect">
+                        <option value="IMAGE_ASPECT_RATIO_PORTRAIT">Portrait (9:16)</option>
+                        <option value="IMAGE_ASPECT_RATIO_LANDSCAPE">Landscape (16:9)</option>
+                        <option value="IMAGE_ASPECT_RATIO_SQUARE">Square (1:1)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Variations</label>
+                    <select id="imageVariations">
+                        <option value="1">1 Image</option>
+                        <option value="2" selected>2 Images</option>
+                        <option value="3">3 Images</option>
+                        <option value="4">4 Images</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <button class="btn btn-primary" onclick="generateImages()" id="btnGenImage" style="width:100%;">🖼️ Generate Images</button>
+                </div>
+            </div>
+        </div>
+        <div class="results-grid" id="imageResults"></div>
+        <div class="empty-state" id="imageEmpty">
+            <div class="icon">🖼️</div>
+            <p>Your generated images will appear here</p>
+        </div>
+    </div>
+
+    <!-- PROMPT ENHANCER -->
+    <div class="panel" id="panel-enhance">
+        <div class="gen-card">
+            <div class="gen-card-title"><span class="icon">✨</span> AI Prompt Enhancer (Gemini)</div>
+            <div class="form-group">
+                <label class="form-label">Your Idea</label>
+                <textarea id="enhanceInput" placeholder="Enter a rough idea and AI will craft a detailed, optimized prompt...&#10;&#10;Example: cat in space"></textarea>
+            </div>
+            <div class="form-row-3">
+                <div class="form-group">
+                    <label class="form-label">Enhancement Level</label>
+                    <select id="enhanceLevel">
+                        <option value="1">1x — Basic</option>
+                        <option value="2" selected>2x — Double Enhanced</option>
+                        <option value="3">3x — Triple Enhanced</option>
+                        <option value="4">4x — Ultra Enhanced</option>
+                    </select>
+                </div>
+                <div class="form-group" style="display:flex;align-items:flex-end;">
+                    <button class="btn btn-primary" onclick="enhancePrompt()" id="btnEnhance" style="width:100%;">✨ Enhance Prompt</button>
+                </div>
+                <div class="form-group" style="display:flex;align-items:flex-end;">
+                    <button class="btn btn-secondary" onclick="useEnhancedForVideo()" id="btnUseForVideo" style="width:100%;display:none;">🎬 Use for Video</button>
+                </div>
+            </div>
+            <div id="enhanceResult"></div>
+        </div>
+    </div>
+
+    <!-- PROMPT GENERATOR -->
+    <div class="panel" id="panel-promptgen">
+        <div class="gen-card">
+            <div class="gen-card-title"><span class="icon">🎲</span> AI Prompt Generator</div>
+            <p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px;">Generate creative video prompts from scratch. Click the button and AI will create a unique, detailed prompt ready to use.</p>
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="generatePrompt()" id="btnGenPrompt">🎲 Generate Random Prompt</button>
+                <button class="btn btn-secondary" onclick="useGeneratedForVideo()" id="btnUseGenerated" style="display:none;">🎬 Use for Video</button>
+                <button class="btn btn-secondary" onclick="useGeneratedForBatch()" id="btnAddToBatch" style="display:none;">📦 Add to Batch</button>
+            </div>
+            <div id="promptGenResult"></div>
+        </div>
+    </div>
+
+    <!-- TELEGRAM SETTINGS -->
+    <div class="panel" id="panel-telegram">
+        <div class="gen-card">
+            <div class="gen-card-title"><span class="icon">📨</span> Telegram Integration</div>
+            <p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px;">Connect your Telegram bot to automatically receive generated videos. Bot also works 24/7 — send prompts directly to your bot even when this website is closed!</p>
+            <div class="tg-setup">
+                <div class="tg-setup form-row-2">
+                    <div class="form-group">
+                        <label class="form-label">Bot Token</label>
+                        <input type="text" id="tgBotToken" placeholder="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Chat ID</label>
+                        <input type="text" id="tgChatId" placeholder="Your Telegram Chat ID">
+                    </div>
+                </div>
+                <button class="btn btn-green btn-sm" onclick="setupTelegram()">💾 Save & Connect</button>
+                <div class="tg-help">
+                    <strong>How to set up:</strong><br>
+                    1. Open Telegram, search for <code>@BotFather</code>, send <code>/newbot</code> and follow steps to get your Bot Token<br>
+                    2. Start your new bot (send it <code>/start</code>)<br>
+                    3. To get your Chat ID: send any message to <code>@userinfobot</code> — it will reply with your ID<br>
+                    4. Paste both values above and click Save<br><br>
+                    <strong>Bot Commands:</strong><br>
+                    <code>/video &lt;prompt&gt;</code> — Generate video<br>
+                    <code>/batch</code> — Start batch mode (send prompts, then /go)<br>
+                    <code>/image &lt;prompt&gt;</code> — Generate image<br>
+                    <code>/enhance &lt;prompt&gt;</code> — Enhance prompt (2x)<br>
+                    <code>/random</code> — Generate random prompt<br>
+                    Or just send any text as a video prompt!
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<div class="toast-container" id="toasts"></div>
+
+<script>
+const API = '/api';
+let stats = { videos: 0, images: 0, active: 0, enhanced: 0 };
+let lastEnhanced = '';
+let lastGenerated = '';
+let telegramOn = false;
+
+// ====== IP POOL PARALLEL SYSTEM ======
+// v4: Each video gets its own IP slot from the backend pool (Tor + direct)
+// True parallel generation — no more sequential queue needed!
+let poolSize = 1;
+let torAvailable = false;
+
+async function loadPoolStatus() {
+    try {
+        const res = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'pool_status' }) });
+        const data = await res.json();
+        if (data.success) {
+            poolSize = data.total;
+            torAvailable = data.tor;
+            const slots = data.slots.map(s => `${s.name}: ${s.busy ? 'BUSY' : 'FREE'}`).join(' | ');
+            document.getElementById('poolInfo').innerHTML = `<strong>IP Pool Active: ${data.total} slots</strong> (${data.tor ? data.total - 1 + ' Tor proxies + 1 direct' : '1 direct — install Tor for parallel!'}) <br><small>${slots}</small>`;
+            if (document.getElementById('batchPoolInfo')) {
+                document.getElementById('batchPoolInfo').innerHTML = `<strong>Parallel Batch:</strong> ${data.total} IP slots available. Up to ${data.total} videos generate simultaneously!`;
+            }
+        }
+    } catch {}
+}
+setInterval(loadPoolStatus, 15000);
+loadPoolStatus();
+
+function switchTab(name) {
+    const tabs = ['video','batch','image','enhance','promptgen','telegram'];
+    document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', tabs[i] === name));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+}
+
+function toast(msg, type = 'info') {
+    const t = document.createElement('div');
+    t.className = 'toast ' + type;
+    t.textContent = msg;
+    document.getElementById('toasts').appendChild(t);
+    setTimeout(() => t.remove(), 4000);
+}
+
+function updateStats() {
+    document.getElementById('cntGenerated').textContent = stats.videos;
+    document.getElementById('cntImages').textContent = stats.images;
+    document.getElementById('cntActive').textContent = stats.active;
+    document.getElementById('cntEnhanced').textContent = stats.enhanced;
+    document.getElementById('activeJobsCount').textContent = stats.active + ' Active Jobs';
+}
+
+function uid() { return 'j' + Date.now() + Math.random().toString(36).substr(2, 5); }
+
+function addJobCard(id, prompt, container) {
+    const div = document.createElement('div');
+    div.className = 'job-card';
+    div.id = 'job-' + id;
+    div.innerHTML = `
+        <div class="job-header">
+            <div class="job-prompt" title="${prompt.replace(/"/g, '&quot;')}">${prompt.length > 80 ? prompt.substring(0, 80) + '...' : prompt}</div>
+            <div class="job-status queued">Queued</div>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="prog-${id}"></div></div>
+        <div class="job-time" id="time-${id}">Waiting in queue...</div>
+    `;
+    document.getElementById(container).prepend(div);
+}
+
+function updateJob(id, status, statusClass, progress, timeText) {
+    const card = document.getElementById('job-' + id);
+    if (!card) return;
+    const st = card.querySelector('.job-status');
+    st.className = 'job-status ' + statusClass;
+    st.innerHTML = status;
+    document.getElementById('prog-' + id).style.width = progress + '%';
+    document.getElementById('time-' + id).textContent = timeText;
+}
+
+function removeJob(id) {
+    const card = document.getElementById('job-' + id);
+    if (card) setTimeout(() => card.remove(), 3000);
+}
+
+function addVideoResult(url, prompt, aspect, container = 'videoResults') {
+    const emptyId = container === 'batchResults' ? 'batchEmpty' : 'videoEmpty';
+    document.getElementById(emptyId).style.display = 'none';
+    const cls = aspect.includes('LANDSCAPE') ? 'landscape' : '';
+    const div = document.createElement('div');
+    div.className = 'result-card ' + cls;
+    const safePrompt = prompt.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    div.innerHTML = `
+        <video src="${url}" controls preload="auto"></video>
+        <div class="result-meta">
+            <div class="prompt-text" title="${safePrompt}">${prompt.length > 40 ? prompt.substring(0, 40) + '...' : prompt}</div>
+            <div class="result-btns">
+                <button class="btn-telegram" onclick="sendToTelegram('${url}', '${safePrompt}')">📨</button>
+                <a class="btn-download" href="${url}" download target="_blank">⬇ Download</a>
+            </div>
+        </div>
+    `;
+    document.getElementById(container).prepend(div);
+    if (telegramOn) sendToTelegram(url, prompt);
+}
+
+function addImageResult(base64, prompt) {
+    document.getElementById('imageEmpty').style.display = 'none';
+    const div = document.createElement('div');
+    div.className = 'result-card';
+    div.innerHTML = `
+        <img src="data:image/png;base64,${base64}">
+        <div class="result-meta">
+            <div class="prompt-text" title="${prompt.replace(/"/g, '&quot;')}">${prompt.length > 50 ? prompt.substring(0, 50) + '...' : prompt}</div>
+            <button class="btn-download" onclick="downloadBase64(this)">⬇ Download</button>
+        </div>
+    `;
+    document.getElementById('imageResults').prepend(div);
+}
+
+function downloadBase64(btn) {
+    const img = btn.closest('.result-card').querySelector('img');
+    const a = document.createElement('a');
+    a.href = img.src;
+    a.download = 'image_' + Date.now() + '.png';
+    a.click();
+}
+
+// ====== VIDEO GENERATION (Smart Queue) ======
+
+async function generateVideos() {
+    const prompt = document.getElementById('videoPrompt').value.trim();
+    if (!prompt) return toast('Enter a prompt first', 'error');
+    if (prompt.length < 15) return toast('Prompt must be at least 15 characters', 'error');
+
+    const aspect = document.getElementById('videoAspect').value;
+    const count = parseInt(document.getElementById('videoParallel').value);
+
+    document.getElementById('btnGenVideo').disabled = true;
+    toast(`Launching ${count} parallel video job(s) across ${poolSize} IP slots...`, 'info');
+
+    // Launch ALL in true parallel — backend handles IP slot allocation
+    const jobs = [];
+    for (let i = 0; i < count; i++) {
+        jobs.push(executeVideoJob({ id: uid(), prompt, aspect, resultContainer: 'videoResults', jobContainer: 'videoJobs' }));
+        // Small stagger (500ms) to avoid thundering herd on backend slot allocation
+        if (i < count - 1) await sleep(500);
+    }
+
+    await Promise.allSettled(jobs);
+    document.getElementById('btnGenVideo').disabled = false;
+    loadPoolStatus();
+}
+
+async function executeVideoJob(job) {
+    const { id, prompt, aspect, resultContainer, jobContainer } = job;
+    stats.active++;
+    updateStats();
+    addJobCard(id, prompt, jobContainer || 'videoJobs');
+
+    try {
+        updateJob(id, '<span class="spinner"></span> Getting IP slot', 'generating', 5, 'Acquiring IP slot...');
+
+        // Step 1: Initiate generation — backend auto-assigns an IP slot
+        let sceneData = null;
+        let slotName = 'direct';
+        let proxyUrl = null;
+        let initRetries = 0;
+        const maxInitRetries = 5;
+
+        while (!sceneData && initRetries < maxInitRetries) {
+            const initRes = await fetch(API, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'video_generate', prompt, aspectRatio: aspect })
+            });
+            const initData = await initRes.json();
+
+            if (initData.success && initData.sceneData) {
+                sceneData = initData.sceneData;
+                slotName = initData.slot || 'direct';
+                proxyUrl = initData.proxy || null;
+            } else if (initData.retryable || (initData.error && (initData.error.includes('Rate limited') || initData.error.includes('In Progress') || initData.error.includes('busy') || initData.error.includes('slots failed') || initData.error.includes('retries')))) {
+                initRetries++;
+                const waitSec = initRetries <= 2 ? 15 : 25;
+                updateJob(id, '<span class="spinner"></span> Retrying generation', 'generating', 10, `Retry ${initRetries}/${maxInitRetries} — waiting ${waitSec}s... (${initData.error || 'slot busy'})`);
+                await sleep(waitSec * 1000);
+            } else {
+                throw new Error(initData.error || 'Generation failed');
+            }
+        }
+
+        if (!sceneData) throw new Error('All IP slots busy after retries');
+
+        updateJob(id, `<span class="spinner"></span> Rendering [${slotName}]`, 'generating', 20, `Slot: ${slotName} | Rendering...`);
+
+        // Step 2: Wait 50s then poll (videos ready ~55-65s)
+        const startWait = 50;
+        let elapsed = 0;
+        while (elapsed < startWait) {
+            await sleep(2000);
+            elapsed += 2;
+            const pct = 20 + (elapsed / startWait) * 50;
+            updateJob(id, `<span class="spinner"></span> [${slotName}]`, 'generating', pct, `Rendering... ${elapsed}s / ~${startWait}s`);
+        }
+
+        // Step 3: Poll for result (polling uses same proxy for consistency)
+        updateJob(id, `<span class="spinner"></span> Polling [${slotName}]`, 'polling', 75, 'Checking...');
+
+        let videoUrl = null;
+        let pollRetries = 0;
+        const maxPollRetries = 20;
+
+        while (!videoUrl && pollRetries < maxPollRetries) {
+            const pollRes = await fetch(API, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'video_poll', sceneData, proxy: proxyUrl })
+            });
+            const pollData = await pollRes.json();
+
+            if (pollData.success && pollData.videoUrl) {
+                videoUrl = pollData.videoUrl;
+            } else if (pollData.error && !pollData.error.includes('pending')) {
+                throw new Error(pollData.error);
+            } else {
+                pollRetries++;
+                const pct = 75 + (pollRetries / maxPollRetries) * 20;
+                updateJob(id, `<span class="spinner"></span> [${slotName}]`, 'polling', pct, `Poll ${pollRetries}/${maxPollRetries}...`);
+                await sleep(10000);
+            }
+        }
+
+        if (!videoUrl) throw new Error('Timed out (250s+)');
+
+        updateJob(id, `✓ Done [${slotName}]`, 'done', 100, 'Video ready!');
+        addVideoResult(videoUrl, prompt, aspect, resultContainer);
+        stats.videos++;
+        toast(`Video generated via ${slotName}!`, 'success');
+
+    } catch (err) {
+        updateJob(id, '✗ Failed', 'error', 100, err.message);
+        toast('Error: ' + err.message, 'error');
+    } finally {
+        stats.active--;
+        updateStats();
+        removeJob(id);
+    }
+}
+
+// ====== BATCH MODE (True Parallel via IP Pool) ======
+
+async function batchGenerate() {
+    const raw = document.getElementById('batchPrompts').value.trim();
+    if (!raw) return toast('Enter prompts first', 'error');
+
+    const prompts = raw.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length >= 15);
+    if (!prompts.length) return toast('No valid prompts (min 15 chars each)', 'error');
+
+    const aspect = document.getElementById('batchAspect').value;
+    const enhanceLevel = parseInt(document.getElementById('batchEnhance').value);
+
+    document.getElementById('btnBatch').disabled = true;
+    document.getElementById('btnBatch').innerHTML = '<span class="spinner"></span> Processing...';
+
+    let finalPrompts = prompts;
+
+    // Enhance sequentially if requested
+    if (enhanceLevel > 0) {
+        toast(`Enhancing ${prompts.length} prompts at ${enhanceLevel}x...`, 'info');
+        const enhanced = [];
+        for (const p of prompts) {
+            try {
+                const res = await fetch(API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'enhance_prompt', prompt: p, enhanceLevel })
+                });
+                const data = await res.json();
+                enhanced.push(data.success ? data.enhanced : p);
+                stats.enhanced++;
+                updateStats();
+            } catch { enhanced.push(p); }
+        }
+        finalPrompts = enhanced;
+    }
+
+    // Launch ALL in true parallel — each gets its own IP slot!
+    toast(`Launching ${finalPrompts.length} videos in PARALLEL across ${poolSize} IP slots!`, 'info');
+
+    const jobs = [];
+    for (let i = 0; i < finalPrompts.length; i++) {
+        const p = finalPrompts[i];
+        jobs.push(executeVideoJob({ id: uid(), prompt: p, aspect, jobContainer: 'batchJobs', resultContainer: 'batchResults' }));
+        if (i < finalPrompts.length - 1) await sleep(500);
+    }
+
+    await Promise.allSettled(jobs);
+
+    document.getElementById('btnBatch').disabled = false;
+    document.getElementById('btnBatch').innerHTML = '📦 Launch Batch';
+    toast('Batch complete!', 'success');
+    loadPoolStatus();
+}
+
+// ====== IMAGE GENERATION ======
+async function generateImages() {
+    const prompt = document.getElementById('imagePrompt').value.trim();
+    if (!prompt) return toast('Enter a prompt first', 'error');
+
+    const aspect = document.getElementById('imageAspect').value;
+    const variations = document.getElementById('imageVariations').value;
+
+    document.getElementById('btnGenImage').disabled = true;
+    document.getElementById('btnGenImage').innerHTML = '<span class="spinner"></span> Generating...';
+    toast('Generating images...', 'info');
+
+    try {
+        const res = await fetch(API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'image_generate', prompt, aspectRatio: aspect, variations })
+        });
+        const data = await res.json();
+
+        if (data.success && data.images) {
+            data.images.forEach(img => addImageResult(img, prompt));
+            stats.images += data.images.length;
+            updateStats();
+            toast(`${data.images.length} image(s) generated!`, 'success');
+        } else {
+            throw new Error(data.error || 'Image generation failed');
+        }
+    } catch (err) {
+        toast('Error: ' + err.message, 'error');
+    } finally {
+        document.getElementById('btnGenImage').disabled = false;
+        document.getElementById('btnGenImage').innerHTML = '🖼️ Generate Images';
+    }
+}
+
+// ====== PROMPT ENHANCEMENT ======
+async function enhancePrompt() {
+    const input = document.getElementById('enhanceInput').value.trim();
+    if (!input) return toast('Enter an idea first', 'error');
+
+    const level = parseInt(document.getElementById('enhanceLevel').value);
+    document.getElementById('btnEnhance').disabled = true;
+    document.getElementById('btnEnhance').innerHTML = '<span class="spinner"></span> Enhancing...';
+
+    try {
+        const res = await fetch(API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'enhance_prompt', prompt: input, enhanceLevel: level })
+        });
+        const data = await res.json();
+
+        if (data.success && data.enhanced) {
+            lastEnhanced = data.enhanced;
+            let stepsHtml = '';
+            if (data.steps && data.steps.length > 1) {
+                stepsHtml = '<div class="enhance-steps">';
+                data.steps.forEach(s => {
+                    stepsHtml += `<div class="enhance-step"><div class="enhance-step-label">Level ${s.level}</div>${s.result}</div>`;
+                });
+                stepsHtml += '</div>';
+            }
+
+            document.getElementById('enhanceResult').innerHTML = `
+                <div class="enhanced-result">
+                    <button class="copy-btn" onclick="copyText(this)">📋 Copy</button>
+                    ${data.enhanced}
+                </div>
+                ${stepsHtml}
+            `;
+            document.getElementById('btnUseForVideo').style.display = 'inline-flex';
+            stats.enhanced++;
+            updateStats();
+            toast(`Prompt enhanced ${data.totalLevels}x!`, 'success');
+        } else {
+            throw new Error(data.error || 'Enhancement failed');
+        }
+    } catch (err) {
+        toast('Error: ' + err.message, 'error');
+    } finally {
+        document.getElementById('btnEnhance').disabled = false;
+        document.getElementById('btnEnhance').innerHTML = '✨ Enhance Prompt';
+    }
+}
+
+function useEnhancedForVideo() {
+    if (lastEnhanced) {
+        document.getElementById('videoPrompt').value = lastEnhanced;
+        switchTab('video');
+        toast('Enhanced prompt loaded', 'success');
+    }
+}
+
+async function enhanceAndFill() {
+    const input = document.getElementById('videoPrompt').value.trim();
+    if (!input) return toast('Enter a prompt to enhance', 'error');
+
+    const level = parseInt(document.getElementById('videoEnhanceLevel').value);
+    document.getElementById('btnEnhanceVideo').disabled = true;
+    document.getElementById('btnEnhanceVideo').innerHTML = '<span class="spinner"></span>';
+
+    try {
+        const res = await fetch(API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'enhance_prompt', prompt: input, enhanceLevel: level })
+        });
+        const data = await res.json();
+
+        if (data.success && data.enhanced) {
+            document.getElementById('videoPrompt').value = data.enhanced;
+            stats.enhanced++;
+            updateStats();
+            toast(`Prompt enhanced ${data.totalLevels}x!`, 'success');
+        }
+    } catch (err) {
+        toast('Enhancement failed', 'error');
+    } finally {
+        document.getElementById('btnEnhanceVideo').disabled = false;
+        document.getElementById('btnEnhanceVideo').innerHTML = '✨ Enhance';
+    }
+}
+
+// ====== PROMPT GENERATOR ======
+async function generatePrompt() {
+    document.getElementById('btnGenPrompt').disabled = true;
+    document.getElementById('btnGenPrompt').innerHTML = '<span class="spinner"></span> Generating...';
+
+    try {
+        const res = await fetch(API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'generate_prompt' })
+        });
+        const data = await res.json();
+
+        if (data.success && data.prompt) {
+            lastGenerated = data.prompt;
+            document.getElementById('promptGenResult').innerHTML = `
+                <div class="enhanced-result" style="margin-top:16px;">
+                    <button class="copy-btn" onclick="copyText(this)">📋 Copy</button>
+                    ${data.prompt}
+                </div>
+                <p style="font-size:11px;color:var(--text-muted);margin-top:8px;">Seed idea: "${data.seed}"</p>
+            `;
+            document.getElementById('btnUseGenerated').style.display = 'inline-flex';
+            document.getElementById('btnAddToBatch').style.display = 'inline-flex';
+            toast('Prompt generated!', 'success');
+        } else {
+            throw new Error(data.error || 'Generation failed');
+        }
+    } catch (err) {
+        toast('Error: ' + err.message, 'error');
+    } finally {
+        document.getElementById('btnGenPrompt').disabled = false;
+        document.getElementById('btnGenPrompt').innerHTML = '🎲 Generate Random Prompt';
+    }
+}
+
+function useGeneratedForVideo() {
+    if (lastGenerated) {
+        document.getElementById('videoPrompt').value = lastGenerated;
+        switchTab('video');
+        toast('Prompt loaded', 'success');
+    }
+}
+
+function useGeneratedForBatch() {
+    if (lastGenerated) {
+        const existing = document.getElementById('batchPrompts').value.trim();
+        document.getElementById('batchPrompts').value = existing ? existing + '\n\n' + lastGenerated : lastGenerated;
+        switchTab('batch');
+        toast('Prompt added to Batch', 'success');
+    }
+}
+
+// ====== TELEGRAM ======
+async function setupTelegram() {
+    const token = document.getElementById('tgBotToken').value.trim();
+    const chatId = document.getElementById('tgChatId').value.trim();
+
+    if (!token || !chatId) return toast('Both Bot Token and Chat ID required', 'error');
+
+    try {
+        const res = await fetch(API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'telegram_setup', botToken: token, chatId })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            telegramOn = true;
+            document.getElementById('tgDot').classList.add('on');
+            document.getElementById('tgStatus').textContent = 'Telegram On';
+            toast(data.message || 'Telegram connected!', 'success');
+        } else {
+            throw new Error(data.error);
+        }
+    } catch (err) {
+        toast('Error: ' + err.message, 'error');
+    }
+}
+
+async function sendToTelegram(videoUrl, caption) {
+    if (!telegramOn) return toast('Set up Telegram first (📨 tab)', 'error');
+
+    try {
+        const res = await fetch(API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'telegram_send', videoUrl, caption: '🎬 ' + caption })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            toast('Sent to Telegram!', 'success');
+        } else {
+            toast('Telegram: ' + data.error, 'error');
+        }
+    } catch (err) {
+        toast('Telegram send failed', 'error');
+    }
+}
+
+function copyText(btn) {
+    const text = btn.parentElement.textContent.replace('📋 Copy', '').trim();
+    navigator.clipboard.writeText(text);
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => btn.textContent = '📋 Copy', 1500);
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// Check Telegram status on load
+(async function() {
+    try {
+        const res = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'telegram_status' }) });
+        const data = await res.json();
+        if (data.configured) {
+            telegramOn = true;
+            document.getElementById('tgDot').classList.add('on');
+            document.getElementById('tgStatus').textContent = data.bot_running ? 'Bot Active' : 'Telegram On';
+        }
+    } catch {}
+})();
+</script>
+</body>
+</html>
